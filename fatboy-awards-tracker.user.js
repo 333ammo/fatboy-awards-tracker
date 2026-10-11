@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name         Fatboy Awards Tracker
 // @namespace    fatboy.torn
-// @version      3.0.0
+// @version      3.0.1
 // @description  Merit honors and medals tracker for Torn PDA (iOS): merit-only filtering, verified progress, plain-text exports.
 // @author       FATBOY [572123]
-// @match        https://www.torn.com/*
+// @match        https://www.torn.com/awards.php
 // @run-at       document-end
 // @grant        none
 // ==/UserScript==
 
 /*
- * Fatboy Awards Tracker v3.0.0
+ * Fatboy Awards Tracker v3.0.1
  * - Data: Torn API v2 only (schemas checked against the official OpenAPI spec 6.13.x).
  * - Award-to-statistic research reference: YATA awards module (GPL-3.0, Kivou).
  *   YATA was used only as a source of facts (which award ID belongs to which
@@ -29,12 +29,15 @@
  *   format; catalog and data write chains (window.__FBAT_CWC__, __FBAT_DWC__) prevent stale
  *   instance overwrites; shared poison set (__FBAT_POISON__) persists across re-initializations;
  *   restoreCache busy guard; thrNote provenance; export label "snapshot-validated".
+ * 3.0.1: restricted to awards.php only (@match + runtime guard + SPA navigation teardown);
+ *   panel title changed to "Merit Tracker".
  */
 (function () {
   'use strict';
 
-  const VERSION = '3.0.0';
+  const VERSION = '3.0.1';
   if (window.top !== window.self) return;
+  if (!/\/awards\.php/.test(location.pathname)) return;
   const PRIOR = window.__FBAT__;
   if (PRIOR && PRIOR.version === VERSION && typeof PRIOR.isAlive === 'function' && PRIOR.isAlive()) return;
   if (PRIOR && typeof PRIOR.destroy === 'function') { try { PRIOR.destroy(); } catch (e) { /* old instance already gone */ } }
@@ -1685,7 +1688,7 @@
   const HTML =
     '<button class="fab" data-act="open" aria-label="Open awards tracker">\u{1F3C5} Awards</button>' +
     '<div class="ov" data-act="backdrop"><div class="pn" role="dialog" aria-modal="true" aria-label="Fatboy Awards Tracker">' +
-    '<div class="hd"><div class="ttl">FATBOY Awards<small>v' + VERSION + '</small></div>' +
+    '<div class="hd"><div class="ttl">Merit Tracker<small>v' + VERSION + '</small></div>' +
     '<button class="ib" data-act="refresh" aria-label="Refresh">\u21BB</button><button class="ib" data-act="settings" aria-label="Settings">\u2699</button>' +
     '<button class="ib x" data-act="close" aria-label="Close">\u2715</button></div>' +
     '<div class="body"><div class="status"></div><div class="warnbox"></div><div class="dash"></div>' +
@@ -2116,6 +2119,9 @@
     if (document.getElementById('fbat2-host')) { const old = document.getElementById('fbat2-host'); old.parentNode.removeChild(old); }
     UI.build();
     window.__FBAT__ = { version: VERSION, isAlive: UI.isAlive, destroy: UI.destroy, open: UI.open, close: UI.close };
+    window.addEventListener('popstate', function onNav() {
+      if (!/\/awards\.php/.test(location.pathname)) { UI.destroy(); window.removeEventListener('popstate', onNav); }
+    }, { passive: true });
     if (window.__FBAT_EXPOSE__ === true) {
       window.__FBAT_TEST__ = { App, REG, STATS, RANKS, extractNumbers, pickNumber, classify, computeProgress, buildModel, viewItems, applyFilters, exportText, statusText, progressLines, refresh, rebuild, loadCatalog, diagnostics, fmtPct, normAward, UI,
         VALID_H, VALID_M, VALID_DATE, TOKEN_SHOP, FUTURE_IDS, REG_DUPES, REG_CONFLICTS, registryAudit, anniversary, snapshotFor, normName, annivLines, resolveThreshold, snapshotRule, medalTypeRule, thrNote,
